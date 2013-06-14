@@ -14,6 +14,36 @@ JNIEnv *g_getJNIEnv();
 
 namespace {
 
+static void downsample16(int numChannels, int sampleCount, int newSampleCount, const void *in, void *out)
+{
+    const short *cin = (const short*)in;
+    short *cout = (short*)out;
+
+    for (int i = 0; i < newSampleCount; ++i)
+    {
+        int j = (i * sampleCount + (sampleCount / 2)) / newSampleCount;
+        for (int k = 0; k < numChannels; ++k)
+        {
+            cout[i * numChannels + k] = cin[j * numChannels + k];
+        }
+    }
+}
+
+static void downsample8(int numChannels, int sampleCount, int newSampleCount, const void *in, void *out)
+{
+    const short *cin = (const short*)in;
+    unsigned char *cout = (unsigned char*)out;
+
+    for (int i = 0; i < newSampleCount; ++i)
+    {
+        int j = (i * sampleCount + (sampleCount / 2)) / newSampleCount;
+        for (int k = 0; k < numChannels; ++k)
+        {
+            cout[i * numChannels + k] = (cin[j * numChannels + k] >> 8) + 128;
+        }
+    }
+}
+
 static void calculateAmplitudeData(int numChannels, int bitsPerSample, gmicrophone_DataAvailableEvent *event)
 {
     int n = event->sampleCount * numChannels;
@@ -87,7 +117,7 @@ public:
 
         g_id gid = g_NextId();	
 
-		jint error2 = env->CallStaticIntMethod(cls_, env->GetStaticMethodID(cls_, "Create", "(JIII)I"), (jlong)gid, (jint)numChannels, (jint)sampleRate, (jint)bitsPerSample);
+		jint error2 = env->CallStaticIntMethod(cls_, env->GetStaticMethodID(cls_, "Create", "(JIII)I"), (jlong)gid, (jint)numChannels, (jint)44100, (jint)16);
 
 		if (error2 != GMICROPHONE_NO_ERROR)
 		{
@@ -96,7 +126,7 @@ public:
 			return 0;
 		}
 		
-		microphones_[gid] = new Microphone(gid, numChannels, bitsPerSample);
+		microphones_[gid] = new Microphone(gid, numChannels, sampleRate, bitsPerSample);
 		
 		if (error)
 			*error = GMICROPHONE_NO_ERROR;
@@ -206,9 +236,10 @@ private:
     class Microphone
     {
     public:
-        Microphone(g_id gid, int numChannels, int bitsPerSample) :
+        Microphone(g_id gid, int numChannels, int sampleRate, int bitsPerSample) :
 			gid(gid),
 			numChannels(numChannels),
+			sampleRate(sampleRate),			
             bitsPerSample(bitsPerSample)
         {
             bytesPerSample = ((bitsPerSample + 7) / 8) * numChannels;
@@ -216,6 +247,7 @@ private:
 
         g_id gid;
 		int numChannels;
+		int sampleRate;
         int bitsPerSample;
 		int bytesPerSample;
 
@@ -223,16 +255,20 @@ private:
 		void onDataAvailable(void *data, int size)
 		{
 			int sampleCount = size / numChannels;
+			int newSampleCount = (sampleCount * sampleRate) / 44100;
 			size_t structSize = sizeof(gmicrophone_DataAvailableEvent);
-			size_t dataSize = sampleCount * bytesPerSample;
+			size_t dataSize = newSampleCount * bytesPerSample;
 
 			gmicrophone_DataAvailableEvent *event = (gmicrophone_DataAvailableEvent*)malloc(structSize + dataSize);
 
 			event->microphone = gid;
 			event->data = (char*)event + structSize;
-			event->sampleCount = sampleCount;
+			event->sampleCount = newSampleCount;
 			
-			memcpy(event->data, data, dataSize);
+			if (bitsPerSample == 8)
+				downsample8(numChannels, sampleCount, newSampleCount, data, event->data);
+			else
+				downsample16(numChannels, sampleCount, newSampleCount, data, event->data);
 
 			calculateAmplitudeData(numChannels, bitsPerSample, event);
 
