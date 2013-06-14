@@ -64,6 +64,3 @@ Dispatched as audio samples become available.
 * Add `android.permission.RECORD_AUDIO` permission.
 
 
-## Notes
-Most android devices doesn't support 8-bit recording.
-
