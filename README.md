@@ -60,7 +60,7 @@ Dispatched as audio samples become available.
 * Copy bin/Android/* to libs directory.
 * Copy source/com/* to your project.
 * Add `System.loadLibrary("microphone");` to your main Activity.
-* Add `"com.giderosmobile.android.plugins.GMicrophone"` to `externalClasses` array.
+* Add `"com.giderosmobile.android.plugins.microphone.GMicrophone"` to `externalClasses` array.
 * Add `android.permission.RECORD_AUDIO` permission.
 
 
