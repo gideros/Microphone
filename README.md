@@ -54,13 +54,12 @@ Dispatched as audio samples become available.
 * Copy bin/microphone.dylib to Plugins directory.
 
 ### iOS
-* Add `gmicrophone-ios.mm`, `gsoundencoder-wav.cpp` and `gmicrophonebinder.cpp` to Xcode project.
+* Add `gmicrophone-ios.mm`, `gmicrophone.h`, `gsoundencoder-wav.cpp`, `gsoundencoder.h` and `gmicrophonebinder.cpp` to Plugins folder inside Xcode project (File›Add Files to "APPNAME"...).
+* Add a line in APPNAME-Info.plist: add key NSMicrophoneUsageDescription with a string value explaining to the user how the app uses this data.
 
 ### Android
-* Copy bin/Android/* to libs directory.
-* Copy source/com/* to your project.
+* Copy bin/Android/libs/* to exported app/src/main/jnilibs directory.
+* Copy source/Android/src/com/giderosmobile/android/* to exported app/src/main/java/com/giderosmobile/android/ directory.
 * Add `System.loadLibrary("microphone");` to your main Activity.
 * Add `"com.giderosmobile.android.plugins.microphone.GMicrophone"` to `externalClasses` array.
 * Add `android.permission.RECORD_AUDIO` permission.
-
-
